@@ -261,7 +261,7 @@ class LinksApiTest {
 
                 HttpRequest request = HttpRequest.newBuilder()
                     .GET()
-                    .uri(new URI("http://localhost:%d/%s".formatted(port, "oops")))
+                    .uri(new URI("http://localhost:%d/%s".formatted(port, "oops123456")))
                     .timeout(TIMEOUT)
                     .build();
 

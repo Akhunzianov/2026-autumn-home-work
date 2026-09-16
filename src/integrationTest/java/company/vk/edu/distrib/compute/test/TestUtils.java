@@ -18,7 +18,7 @@ public enum TestUtils {
     ;
 
     public static final Duration TIMEOUT = Duration.ofSeconds(5);
-    public static final String TEST_LINK_ID = "10db3750xYz";
+    public static final String TEST_LINK_ID = "10db3750xY";
     public static final String TEST_LONG_LINK = "https://ya.ru/search/?text=test";
     public static final String TEST_LONG_LINK_2 = "https://ya.ru/search/?text=test2";
     public static final String CONTENT_TYPE_TEXT = "text/html; charset=utf-8";
