@@ -66,7 +66,7 @@ public enum TestUtils {
 
     public static HttpResponse<String> create(HttpClient httpClient, int port, String longLink)
         throws IOException, InterruptedException, URISyntaxException {
-        return create(httpClient, port, longLink, null);
+        return create(httpClient, port, longLink, TEST_CREDENTIALS);
     }
 
     public static HttpResponse<String> create(HttpClient httpClient, int port, String longLink, Credentials credentials)
@@ -82,7 +82,7 @@ public enum TestUtils {
 
     public static HttpResponse<String> get(HttpClient httpClient, int port, String id)
         throws IOException, InterruptedException, URISyntaxException {
-        return get(httpClient, port, id, null);
+        return get(httpClient, port, id, TEST_CREDENTIALS);
     }
 
     public static HttpResponse<String> get(HttpClient httpClient, int port, String id, Credentials credentials)
@@ -97,7 +97,7 @@ public enum TestUtils {
 
     public static HttpResponse<Void> update(HttpClient httpClient, int port, String id, String longLink)
         throws IOException, InterruptedException, URISyntaxException {
-        return update(httpClient, port, id, longLink, null);
+        return update(httpClient, port, id, longLink, TEST_CREDENTIALS);
     }
 
     public static HttpResponse<Void> update(HttpClient httpClient, int port, String id, String longLink, Credentials credentials)
@@ -113,7 +113,7 @@ public enum TestUtils {
 
     public static HttpResponse<Void> delete(HttpClient httpClient, int port, String id)
         throws IOException, InterruptedException, URISyntaxException {
-        return delete(httpClient, port, id, null);
+        return delete(httpClient, port, id, TEST_CREDENTIALS);
     }
 
     public static HttpResponse<Void> delete(HttpClient httpClient, int port, String id, Credentials credentials)
@@ -150,6 +150,24 @@ public enum TestUtils {
                 .encodeToString((credentials.username() + ":" + credentials.password()).getBytes(StandardCharsets.UTF_8));
             request.header("Authorization", "Basic " + token);
         }
+    }
+
+    public static void tryCreateTestUser(HttpClient httpClient, int port) {
+        try {
+            createUser(httpClient, port, TEST_CREDENTIALS);
+        } catch (Exception ignored) {
+        }
+    }
+
+    public static HttpResponse<Void> createUser(HttpClient httpClient, int port, Credentials credentials)
+        throws IOException, InterruptedException, URISyntaxException {
+        HttpRequest request = HttpRequest.newBuilder()
+            .POST(HttpRequest.BodyPublishers.ofString(credentials.username() + ":" + credentials.password()))
+            .uri(new URI("http://localhost:" + port + "/internal/users"))
+            .header("Content-Type", CONTENT_TYPE_TEXT)
+            .timeout(TIMEOUT)
+            .build();
+        return httpClient.send(request, HttpResponse.BodyHandlers.discarding());
     }
 
     public record Credentials(String username, String password) {

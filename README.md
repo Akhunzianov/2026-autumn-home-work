@@ -46,7 +46,7 @@ From github.com:vk-edu-distrib-compute/2026-autumn-home-work
 ### Run
 Запустить можно так (если вы вдруг используете винду то SERVICE_FACTORY переменную нужно задавать по-другому и запускать `gradle.bat`):
 ```bash
-$ SERVICE_FATORY=<fully.qualified.service.factory.class.name> SERVICE_PORT=8080 ./gradlew run
+$ SERVICE_FACTORY=<fully.qualified.service.factory.class.name> SERVICE_PORT=8080 ./gradlew run
 ````
 
 ### Test
@@ -77,7 +77,7 @@ $ ./gradlew codeStyleChecks
 * `PUT /v0/links/<ID>` -- изменить существующую короткую ссылку по `<ID>` на заданную в теле, `Content-Type: text/html; charset=utf-8`. Возвращает `200 OK`, или `404 Not found` если такого `<ID>` нет.
 * `DELETE /v0/links/<ID>` -- удалить ссылку по `<ID>`. Возвращает `202 Accepted`.
 * `GET /<ID>` -- отдаётся редирект `301 Moved Permanently` и заголовок `Location: <длинная ссылка соотвествующая ID>`. `404 Not Found` если такого `<ID>` нет.
-* Во всех случаях, кога передаётся либо не валидный `<ID>` либо невалидная ссылка в тебе запроса (POST/PUT методы) - надо вернуть `422 Unprocessable Content`
+* Во всех случаях, когда передаётся либо не валидный `<ID>` либо невалидная ссылка в теле запроса (POST/PUT методы) - надо вернуть `422 Unprocessable Content`
 
 1. Сделать наследника [`AbstractHttpServiceFactory`](src/main/java/company/vk/edu/distrib/compute/AbstractHttpServiceFactory.java) в пакете со своим именем/ником, у класса должен быть публичный конструктор **без параметров**
 2. Ваша реализация интерфейса `UrlShortenerService`, возвращаемая из вашей же `AbstractHttpServiceFactory`, должна запускать [HttpServer из JDK](https://docs.oracle.com/en/java/javase/25/docs/api/jdk.httpserver/com/sun/net/httpserver/HttpServer.html).
@@ -93,7 +93,7 @@ $ ./gradlew codeStyleChecks
 1. Добавить проверку заголовка [basic-аутентификации](https://datatracker.ietf.org/doc/html/rfc7617) согласно со спекой.
 2. Пользователей и пароли хранить в отдельном `Dao<String>`
 3. Добавить в HTTP API протокол сервиса: `POST /internal/users` -- добавить пользователя, `Content-Type: text/html; charset=utf-8`, тело состоит из одной строки содержащей имя пользователя и пароль разделённые двоеточием (например `admin:super_pass`). Возвращает `200 OK`, если пользователь уже есть заменить пароль на заданный. Метод нужен, чтобы можно было наполнить базу пользователей для простоты тестирования. В реальных сервисах такое делается по-другому.
-4. Аутентификацией должны быть закрыты все запросы, кроме `status` и `/intenal/users`
+4. Аутентификацией должны быть закрыты все запросы, кроме `status`, `GET /<ID>` и `/intenal/users`
 5. Добавить своего наследника `AbstractHttpServiceFactory` в поле [`AuthenticatedUrlShortenerServiceFactoryArgumentsProvider.factories`](src/integrationTest/java/company/vk/edu/distrib/compute/test/urlshortener/AuthenticatedUrlShortenerServiceFactoryArgumentsProvider.java)
 
 ### Persistent Dao
