@@ -1,12 +1,7 @@
 package company.vk.edu.distrib.compute.test.urlshortener;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Duration;
 
 import company.vk.edu.distrib.compute.AbstractHttpServiceFactory;
 import company.vk.edu.distrib.compute.test.TestUtils;
@@ -25,12 +20,12 @@ import static company.vk.edu.distrib.compute.test.TestUtils.TEST_LONG_LINK;
 import static company.vk.edu.distrib.compute.test.TestUtils.TEST_LONG_LINK_2;
 import static company.vk.edu.distrib.compute.test.TestUtils.TIMEOUT;
 import static company.vk.edu.distrib.compute.test.TestUtils.create;
+import static company.vk.edu.distrib.compute.test.TestUtils.createUser;
 import static company.vk.edu.distrib.compute.test.TestUtils.delete;
 import static company.vk.edu.distrib.compute.test.TestUtils.extractId;
 import static company.vk.edu.distrib.compute.test.TestUtils.get;
 import static company.vk.edu.distrib.compute.test.TestUtils.header;
 import static company.vk.edu.distrib.compute.test.TestUtils.randomPort;
-import static company.vk.edu.distrib.compute.test.TestUtils.status;
 import static company.vk.edu.distrib.compute.test.TestUtils.update;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
@@ -61,7 +56,7 @@ class AuthenticationTest {
             var service = serviceFactory.create(port);
             try {
                 service.start();
-                assertEquals(200, createUser(port, TEST_CREDENTIALS).statusCode());
+                assertEquals(200, createUser(HTTP_CLIENT, port, TEST_CREDENTIALS).statusCode());
             } finally {
                 service.stop();
             }
@@ -76,7 +71,7 @@ class AuthenticationTest {
             try {
                 service.start();
 
-                assertEquals(200, createUser(port, TEST_CREDENTIALS).statusCode());
+                assertEquals(200, createUser(HTTP_CLIENT, port, TEST_CREDENTIALS).statusCode());
 
                 HttpResponse<String> createResponse = create(HTTP_CLIENT, port, TEST_LONG_LINK);
                 assertUnauthorized(createResponse);
@@ -101,7 +96,7 @@ class AuthenticationTest {
                 service.start();
 
                 Credentials validCredentials = TEST_CREDENTIALS;
-                assertEquals(200, createUser(port, validCredentials).statusCode());
+                assertEquals(200, createUser(HTTP_CLIENT, port, validCredentials).statusCode());
 
                 Credentials invalidCredentials = new Credentials(validCredentials.username(), "oops");
                 assertUnauthorized(create(HTTP_CLIENT, port, TEST_LONG_LINK, invalidCredentials));
@@ -119,7 +114,7 @@ class AuthenticationTest {
             try {
                 service.start();
 
-                assertEquals(200, createUser(port, TEST_CREDENTIALS).statusCode());
+                assertEquals(200, createUser(HTTP_CLIENT, port, TEST_CREDENTIALS).statusCode());
 
                 String originalLink = TEST_LONG_LINK;
                 String updatedLink = TEST_LONG_LINK_2;
@@ -144,17 +139,6 @@ class AuthenticationTest {
                 service.stop();
             }
         });
-    }
-
-    private static HttpResponse<Void> createUser(int port, Credentials credentials)
-        throws IOException, InterruptedException, URISyntaxException {
-        HttpRequest request = HttpRequest.newBuilder()
-            .POST(HttpRequest.BodyPublishers.ofString(credentials.username() + ":" + credentials.password()))
-            .uri(new URI("http://localhost:" + port + "/internal/users"))
-            .header("Content-Type", CONTENT_TYPE_TEXT)
-            .timeout(TIMEOUT)
-            .build();
-        return HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.discarding());
     }
 
     private static void assertUnauthorized(HttpResponse<?> response) {

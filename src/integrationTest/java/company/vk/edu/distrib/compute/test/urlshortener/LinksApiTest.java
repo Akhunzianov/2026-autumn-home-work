@@ -21,12 +21,11 @@ import static company.vk.edu.distrib.compute.test.TestUtils.TEST_LONG_LINK;
 import static company.vk.edu.distrib.compute.test.TestUtils.TEST_LONG_LINK_2;
 import static company.vk.edu.distrib.compute.test.TestUtils.TIMEOUT;
 import static company.vk.edu.distrib.compute.test.TestUtils.create;
-import static company.vk.edu.distrib.compute.test.TestUtils.delete;
 import static company.vk.edu.distrib.compute.test.TestUtils.extractId;
 import static company.vk.edu.distrib.compute.test.TestUtils.get;
 import static company.vk.edu.distrib.compute.test.TestUtils.header;
 import static company.vk.edu.distrib.compute.test.TestUtils.randomPort;
-import static company.vk.edu.distrib.compute.test.TestUtils.update;
+import static company.vk.edu.distrib.compute.test.TestUtils.tryCreateTestUser;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
@@ -56,6 +55,7 @@ class LinksApiTest {
             var service = serviceFactory.create(port);
             try {
                 service.start();
+                tryCreateTestUser(HTTP_CLIENT, port);
                 assertEquals(404, get(HTTP_CLIENT, port, TEST_LINK_ID).statusCode());
             } finally {
                 service.stop();
@@ -70,6 +70,7 @@ class LinksApiTest {
             var service = serviceFactory.create(port);
             try {
                 service.start();
+                tryCreateTestUser(HTTP_CLIENT, port);
 
                 String longLink = TEST_LONG_LINK;
                 HttpResponse<String> createResponse = create(HTTP_CLIENT, port, longLink);
@@ -95,6 +96,7 @@ class LinksApiTest {
             var service = serviceFactory.create(port);
             try {
                 service.start();
+                tryCreateTestUser(HTTP_CLIENT, port);
                 assertEquals(422, create(HTTP_CLIENT, port, INVALID_LONG_LINK).statusCode());
             } finally {
                 service.stop();
@@ -109,6 +111,7 @@ class LinksApiTest {
             var service = serviceFactory.create(port);
             try {
                 service.start();
+                tryCreateTestUser(HTTP_CLIENT, port);
                 assertEquals(422, get(HTTP_CLIENT, port, INVALID_LINK_ID).statusCode());
             } finally {
                 service.stop();
@@ -123,6 +126,7 @@ class LinksApiTest {
             var service = serviceFactory.create(port);
             try {
                 service.start();
+                tryCreateTestUser(HTTP_CLIENT, port);
 
                 String originalLink = TEST_LONG_LINK;
                 String updatedLink = TEST_LONG_LINK_2;
@@ -143,6 +147,7 @@ class LinksApiTest {
             var service = serviceFactory.create(port);
             try {
                 service.start();
+                tryCreateTestUser(HTTP_CLIENT, port);
                 assertEquals(422, TestUtils.update(HTTP_CLIENT, port, INVALID_LINK_ID, TEST_LONG_LINK).statusCode());
             } finally {
                 service.stop();
@@ -157,6 +162,7 @@ class LinksApiTest {
             var service = serviceFactory.create(port);
             try {
                 service.start();
+                tryCreateTestUser(HTTP_CLIENT, port);
 
                 String id = extractId(port, create(HTTP_CLIENT, port, TEST_LONG_LINK).body());
                 assertEquals(422, TestUtils.update(HTTP_CLIENT, port, id, INVALID_LONG_LINK).statusCode());
@@ -173,6 +179,7 @@ class LinksApiTest {
             var service = serviceFactory.create(port);
             try {
                 service.start();
+                tryCreateTestUser(HTTP_CLIENT, port);
                 TestUtils.delete(HTTP_CLIENT, port, TEST_LINK_ID);
                 assertEquals(404, TestUtils.update(HTTP_CLIENT, port, TEST_LINK_ID, TEST_LONG_LINK).statusCode());
             } finally {
@@ -188,6 +195,7 @@ class LinksApiTest {
             var service = serviceFactory.create(port);
             try {
                 service.start();
+                tryCreateTestUser(HTTP_CLIENT, port);
                 assertEquals(422, TestUtils.delete(HTTP_CLIENT, port, INVALID_LINK_ID).statusCode());
             } finally {
                 service.stop();
@@ -202,6 +210,7 @@ class LinksApiTest {
             var service = serviceFactory.create(port);
             try {
                 service.start();
+                tryCreateTestUser(HTTP_CLIENT, port);
 
                 String id = extractId(port, create(HTTP_CLIENT, port, TEST_LONG_LINK).body());
 
@@ -220,6 +229,7 @@ class LinksApiTest {
             var service = serviceFactory.create(port);
             try {
                 service.start();
+                tryCreateTestUser(HTTP_CLIENT, port);
                 assertEquals(202, TestUtils.delete(HTTP_CLIENT, port, TEST_LINK_ID).statusCode());
             } finally {
                 service.stop();
@@ -234,6 +244,7 @@ class LinksApiTest {
             var service = serviceFactory.create(port);
             try {
                 service.start();
+                tryCreateTestUser(HTTP_CLIENT, port);
 
                 String id = extractId(port, create(HTTP_CLIENT, port, TEST_LONG_LINK).body());
                 HttpRequest request = HttpRequest.newBuilder()
