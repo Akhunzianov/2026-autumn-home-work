@@ -23,6 +23,7 @@ public enum TestUtils {
     public static final String TEST_LONG_LINK_2 = "https://ya.ru/search/?text=test2";
     public static final String CONTENT_TYPE_TEXT = "text/html; charset=utf-8";
     public static final Credentials TEST_CREDENTIALS = new Credentials("test-user", "super_pass");
+    public static final Credentials SPOTTY_TEST_CREDENTIALS = new Credentials("spotty", "tasty bones");
 
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(2);
     private static final String LINKS_PATH = "/v0/links/";
