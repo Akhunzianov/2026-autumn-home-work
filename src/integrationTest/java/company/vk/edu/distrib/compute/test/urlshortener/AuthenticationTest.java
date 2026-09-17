@@ -15,6 +15,7 @@ import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 
 import static company.vk.edu.distrib.compute.test.TestUtils.CONTENT_TYPE_TEXT;
+import static company.vk.edu.distrib.compute.test.TestUtils.SPOTTY_TEST_CREDENTIALS;
 import static company.vk.edu.distrib.compute.test.TestUtils.TEST_CREDENTIALS;
 import static company.vk.edu.distrib.compute.test.TestUtils.TEST_LONG_LINK;
 import static company.vk.edu.distrib.compute.test.TestUtils.TEST_LONG_LINK_2;
@@ -73,14 +74,14 @@ class AuthenticationTest {
 
                 assertEquals(200, createUser(HTTP_CLIENT, port, TEST_CREDENTIALS).statusCode());
 
-                HttpResponse<String> createResponse = create(HTTP_CLIENT, port, TEST_LONG_LINK);
+                HttpResponse<String> createResponse = create(HTTP_CLIENT, port, TEST_LONG_LINK, SPOTTY_TEST_CREDENTIALS);
                 assertUnauthorized(createResponse);
 
                 String id = extractId(port, create(HTTP_CLIENT, port, TEST_LONG_LINK, TEST_CREDENTIALS).body());
 
-                assertUnauthorized(get(HTTP_CLIENT, port, id));
-                assertUnauthorized(update(HTTP_CLIENT, port, id, TEST_LONG_LINK));
-                assertUnauthorized(delete(HTTP_CLIENT, port, id));
+                assertUnauthorized(get(HTTP_CLIENT, port, id, SPOTTY_TEST_CREDENTIALS));
+                assertUnauthorized(update(HTTP_CLIENT, port, id, TEST_LONG_LINK, SPOTTY_TEST_CREDENTIALS));
+                assertUnauthorized(delete(HTTP_CLIENT, port, id, SPOTTY_TEST_CREDENTIALS));
             } finally {
                 service.stop();
             }
