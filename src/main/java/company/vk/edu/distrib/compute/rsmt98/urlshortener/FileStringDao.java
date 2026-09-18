@@ -17,9 +17,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.NoSuchElementException;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public final class FileStringDao implements Dao<String> {
     private final Path dir;
+    private final Lock lock = new ReentrantLock();
     private boolean isClosed;
 
     public FileStringDao(Path path) throws IOException {
@@ -28,9 +31,10 @@ public final class FileStringDao implements Dao<String> {
     }
 
     @Override
-    public synchronized String get(String key) throws IOException {
-        checkOpen();
+    public String get(String key) throws IOException {
+        lock.lock();
         try {
+            checkOpen();
             return Files.readString(resolveKeyPath(key), StandardCharsets.UTF_8);
         } catch (CharacterCodingException e) {
             throw new IOException("Stored value is not valid UTF-8", e);
@@ -39,56 +43,78 @@ public final class FileStringDao implements Dao<String> {
                 throw e;
             }
             throw new NoSuchElementException("No value exists for the key", e);
+        } finally {
+            lock.unlock();
         }
     }
 
     @Override
-    public synchronized void upsert(String key, String value) throws IOException {
-        checkOpen();
-        Path target = resolveKeyPath(key);
-        Path tmpFile = Files.createTempFile(dir, null, null);
+    public void upsert(String key, String value) throws IOException {
+        lock.lock();
         try {
-            try (FileChannel channel = FileChannel.open(tmpFile, StandardOpenOption.WRITE);
-                    var writer =
-                            new BufferedWriter(
-                                    Channels.newWriter(channel, StandardCharsets.UTF_8))) {
-                writer.write(value);
-                writer.flush();
-                channel.force(true);
-            }
-            Files.move(
-                    tmpFile,
-                    target,
-                    StandardCopyOption.ATOMIC_MOVE,
-                    StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException | RuntimeException | Error e) {
+            checkOpen();
+            Path target = resolveKeyPath(key);
+            Path tmpFile = Files.createTempFile(dir, null, null);
             try {
-                Files.deleteIfExists(tmpFile);
-            } catch (IOException ee) {
-                e.addSuppressed(ee);
+                try (FileChannel channel = FileChannel.open(tmpFile, StandardOpenOption.WRITE);
+                        var writer =
+                                new BufferedWriter(
+                                        Channels.newWriter(channel, StandardCharsets.UTF_8))) {
+                    writer.write(value);
+                    writer.flush();
+                    channel.force(true);
+                }
+                Files.move(
+                        tmpFile,
+                        target,
+                        StandardCopyOption.ATOMIC_MOVE,
+                        StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException | RuntimeException | Error e) {
+                try {
+                    Files.deleteIfExists(tmpFile);
+                } catch (IOException ee) {
+                    e.addSuppressed(ee);
+                }
+                throw e;
             }
-            throw e;
+        } finally {
+            lock.unlock();
         }
     }
 
     @Override
-    public synchronized void delete(String key) throws IOException {
-        checkOpen();
-        if (!Files.deleteIfExists(resolveKeyPath(key)) && !Files.isDirectory(dir)) {
-            throw new NoSuchFileException(dir.toString());
+    public void delete(String key) throws IOException {
+        lock.lock();
+        try {
+            checkOpen();
+            if (!Files.deleteIfExists(resolveKeyPath(key)) && !Files.isDirectory(dir)) {
+                throw new NoSuchFileException(dir.toString());
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
-    public synchronized boolean isAvailable() {
-        return !isClosed
-                && Files.isDirectory(dir)
-                && Files.isReadable(dir)
-                && Files.isWritable(dir);
+    public boolean isAvailable() {
+        lock.lock();
+        try {
+            return !isClosed
+                    && Files.isDirectory(dir)
+                    && Files.isReadable(dir)
+                    && Files.isWritable(dir);
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
-    public synchronized void close() throws IOException {
-        isClosed = true;
+    public void close() throws IOException {
+        lock.lock();
+        try {
+            isClosed = true;
+        } finally {
+            lock.unlock();
+        }
     }
 
     private void checkOpen() throws IOException {

@@ -7,6 +7,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.NoSuchElementException;
 import java.util.Random;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 final class LinkStore {
     private static final String ALPHABET =
@@ -14,36 +16,57 @@ final class LinkStore {
     private static final int ID_LENGTH = 10;
     private final Dao<String> links;
     private final Random random = new Random();
+    private final Lock lock = new ReentrantLock();
 
     LinkStore(Dao<String> links) {
         this.links = links;
     }
 
-    synchronized String get(String id) throws IOException {
+    String get(String id) throws IOException {
         validateId(id);
-        return links.get(id);
+        lock.lock();
+        try {
+            return links.get(id);
+        } finally {
+            lock.unlock();
+        }
     }
 
-    synchronized String create(String longLink) throws IOException {
+    String create(String longLink) throws IOException {
         validateLink(longLink);
-        String id;
-        do {
-            id = randomId();
-        } while (exists(id));
-        links.upsert(id, longLink);
-        return id;
+        lock.lock();
+        try {
+            String id;
+            do {
+                id = randomId();
+            } while (exists(id));
+            links.upsert(id, longLink);
+            return id;
+        } finally {
+            lock.unlock();
+        }
     }
 
-    synchronized void update(String id, String longLink) throws IOException {
+    void update(String id, String longLink) throws IOException {
         validateId(id);
         validateLink(longLink);
-        links.get(id);
-        links.upsert(id, longLink);
+        lock.lock();
+        try {
+            links.get(id);
+            links.upsert(id, longLink);
+        } finally {
+            lock.unlock();
+        }
     }
 
-    synchronized void delete(String id) throws IOException {
+    void delete(String id) throws IOException {
         validateId(id);
-        links.delete(id);
+        lock.lock();
+        try {
+            links.delete(id);
+        } finally {
+            lock.unlock();
+        }
     }
 
     private boolean exists(String id) throws IOException {

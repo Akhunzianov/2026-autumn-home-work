@@ -14,6 +14,12 @@ import java.util.NoSuchElementException;
 import java.util.function.BooleanSupplier;
 
 final class UrlShortenerHandler implements HttpHandler {
+    private static final String GET_METHOD = "GET";
+    private static final String POST_METHOD = "POST";
+    private static final String PUT_METHOD = "PUT";
+    private static final String DELETE_METHOD = "DELETE";
+    private static final String STATUS_PATH = "/v0/status";
+    private static final String USERS_PATH = "/internal/users";
     private static final String LINKS_PATH = "/v0/links/";
     private final String shortLinkPrefix;
     private final LinkStore links;
@@ -56,15 +62,14 @@ final class UrlShortenerHandler implements HttpHandler {
 
     private Response route(HttpExchange exchange) throws IOException {
         String path = exchange.getRequestURI().getRawPath();
-        String method = exchange.getRequestMethod();
-        if ("/v0/status".equals(path)) {
+        if (STATUS_PATH.equals(path)) {
             return status(exchange);
         }
-        if ("/internal/users".equals(path)) {
+        if (USERS_PATH.equals(path)) {
             return registerUser(exchange);
         }
         boolean redirectPath = path.startsWith("/") && path.indexOf('/', 1) == -1;
-        if (redirectPath && "GET".equals(method)) {
+        if (redirectPath && GET_METHOD.equals(exchange.getRequestMethod())) {
             String id = path.substring(1);
             String longLink = links.get(id);
             exchange.getResponseHeaders().set("Location", URI.create(longLink).toASCIIString());
@@ -74,27 +79,32 @@ final class UrlShortenerHandler implements HttpHandler {
             exchange.getResponseHeaders().set("WWW-Authenticate", BasicAuthentication.CHALLENGE);
             return new Response(401);
         }
+        return routeLinks(exchange, path, redirectPath);
+    }
+
+    private Response routeLinks(HttpExchange exchange, String path, boolean redirectPath)
+            throws IOException {
         if (path.length() == LINKS_PATH.length() - 1 && LINKS_PATH.startsWith(path)) {
-            return "POST".equals(method)
+            return POST_METHOD.equals(exchange.getRequestMethod())
                     ? new Response(201, shortLinkPrefix + links.create(readBody(exchange)))
-                    : methodNotAllowed(exchange, "POST");
+                    : methodNotAllowed(exchange, POST_METHOD);
         }
         if (path.startsWith(LINKS_PATH)) {
             String id = path.substring(LINKS_PATH.length());
             return accessLink(exchange, id);
         }
-        return redirectPath ? methodNotAllowed(exchange, "GET") : new Response(404);
+        return redirectPath ? methodNotAllowed(exchange, GET_METHOD) : new Response(404);
     }
 
     private Response status(HttpExchange exchange) {
-        return "GET".equals(exchange.getRequestMethod())
+        return GET_METHOD.equals(exchange.getRequestMethod())
                 ? new Response(available.getAsBoolean() ? 200 : 503)
-                : methodNotAllowed(exchange, "GET");
+                : methodNotAllowed(exchange, GET_METHOD);
     }
 
     private Response registerUser(HttpExchange exchange) throws IOException {
-        if (!"POST".equals(exchange.getRequestMethod())) {
-            return methodNotAllowed(exchange, "POST");
+        if (!POST_METHOD.equals(exchange.getRequestMethod())) {
+            return methodNotAllowed(exchange, POST_METHOD);
         }
         auth.register(readBody(exchange));
         return new Response(200);
@@ -102,18 +112,19 @@ final class UrlShortenerHandler implements HttpHandler {
 
     private Response accessLink(HttpExchange exchange, String id) throws IOException {
         return switch (exchange.getRequestMethod()) {
-            case "GET" -> new Response(200, links.get(id));
-            case "PUT" -> {
+            case GET_METHOD -> new Response(200, links.get(id));
+            case PUT_METHOD -> {
                 links.update(id, readBody(exchange));
                 yield new Response(200);
             }
-            case "DELETE" -> {
+            case DELETE_METHOD -> {
                 links.delete(id);
                 yield new Response(202);
             }
             default -> {
                 LinkStore.validateId(id);
-                yield methodNotAllowed(exchange, "GET, PUT, DELETE");
+                yield methodNotAllowed(
+                        exchange, GET_METHOD + ", " + PUT_METHOD + ", " + DELETE_METHOD);
             }
         };
     }
