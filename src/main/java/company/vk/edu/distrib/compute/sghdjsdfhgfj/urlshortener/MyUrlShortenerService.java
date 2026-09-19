@@ -1,7 +1,9 @@
 package company.vk.edu.distrib.compute.sghdjsdfhgfj.urlshortener;
 
+import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import company.vk.edu.distrib.compute.sghdjsdfhgfj.urlshortener.handlers.*;
 import company.vk.edu.distrib.compute.urlshortener.UrlShortenerService;
 
 import java.io.IOException;
@@ -20,10 +22,10 @@ public class MyUrlShortenerService implements UrlShortenerService {
         urls = new PersistentDao("urls.dat");
         users = new PersistentDao("users.dat");
 
-        server.createContext("/v0/status", new ExceptionHandler(new StatusHandler()));
-        server.createContext("/v0/links", new ExceptionHandler(new LinksHandler(this)));
-        server.createContext("/internal/users", new ExceptionHandler(new UsersHandler(this)));
-        server.createContext("/", new ExceptionHandler(new RedirectHandler(this)));
+        addContext("/v0/status", new StatusHandler());
+        addContext("/v0/links", new LinksHandler(this));
+        addContext("/internal/users", new UsersHandler(this));
+        addContext("/", new RedirectHandler(this));
     }
 
     @Override
@@ -40,7 +42,11 @@ public class MyUrlShortenerService implements UrlShortenerService {
         return "http://localhost:" + server.getAddress().getPort();
     }
 
-    public boolean isAuthenticated(HttpExchange xch) throws IOException {
+    private HttpContext addContext(String path, CustomHttpHandler handler) {
+        return server.createContext(path, new CustomHttpHandlerTranslator(handler));
+    }
+
+    private boolean isAuthenticated(HttpExchange xch) throws IOException {
         String header = xch.getRequestHeaders().getFirst("Authorization");
         if (header == null) {
             return false;
@@ -54,6 +60,12 @@ public class MyUrlShortenerService implements UrlShortenerService {
         return credentials.length == 2
                 && users.containsKey(credentials[0])
                 && users.get(credentials[0]).equals(credentials[1]);
+    }
+
+    public void checkAuthentication(HttpExchange xch) throws IOException, StatusCodeException {
+        if (!isAuthenticated(xch)) {
+            throw StatusCodeException.unauthorized();
+        }
     }
 
     public boolean isUrlRegistered(String id) {
