@@ -16,9 +16,9 @@ public class UsersHandler implements HttpHandler {
     public void handle(HttpExchange xch) throws IOException {
         String method = xch.getRequestMethod();
         if ("POST".equalsIgnoreCase(method)) {
-            String[] creds = service.responseBody(xch).split(":");
-            if (creds.length == 2) {
-                service.upsertUser(creds[0], creds[1]);
+            String[] credentials = RequestUtils.responseBody(xch).split(":");
+            if (credentials.length == 2) {
+                service.upsertUser(credentials[0], credentials[1]);
                 xch.sendResponseHeaders(200, 0);
             } else {
                 xch.sendResponseHeaders(422, 0);

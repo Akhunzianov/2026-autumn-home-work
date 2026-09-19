@@ -17,7 +17,7 @@ public class RedirectHandler implements HttpHandler {
         String method = xch.getRequestMethod();
         if ("GET".equalsIgnoreCase(method)) {
             String urlId = xch.getRequestURI().getPath().replaceFirst("/", "");
-            if (service.isValidId(urlId)) {
+            if (RequestUtils.isValidId(urlId)) {
                 if (service.isUrlRegistered(urlId)) {
                     xch.getResponseHeaders().add("Location", service.getLongUrl(urlId));
                     xch.sendResponseHeaders(301, 0);

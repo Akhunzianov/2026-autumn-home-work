@@ -42,7 +42,7 @@ public class LinksHandler implements HttpHandler {
             return;
         }
         String urlId = separatedPath[3];
-        if (!service.isValidId(urlId)) {
+        if (!RequestUtils.isValidId(urlId)) {
             xch.sendResponseHeaders(422, 0);
             xch.close();
             return;
@@ -60,15 +60,15 @@ public class LinksHandler implements HttpHandler {
     }
 
     private void handlePost(HttpExchange xch) throws IOException {
-        String url = service.responseBody(xch);
-        if (!service.isValidUrl(url)) {
+        String url = RequestUtils.responseBody(xch);
+        if (!RequestUtils.isValidUrl(url)) {
             xch.sendResponseHeaders(422, 0);
             xch.close();
             return;
         }
-        String id = service.generateId();
+        String id = RequestUtils.generateId();
         while (service.isUrlRegistered(id)) {
-            id = service.generateId();
+            id = RequestUtils.generateId();
         }
         service.upsertUrl(id, url);
         xch.getResponseHeaders().add("Content-Type", "text/html; charset=utf-8");
@@ -80,7 +80,7 @@ public class LinksHandler implements HttpHandler {
     }
 
     private void handlePut(HttpExchange xch) throws IOException {
-        String url = service.responseBody(xch);
+        String url = RequestUtils.responseBody(xch);
         String[] separatedPath = xch.getRequestURI().getPath().split("/");
         if (separatedPath.length < 4) {
             xch.sendResponseHeaders(405, 0);
@@ -88,12 +88,12 @@ public class LinksHandler implements HttpHandler {
             return;
         }
         String id = separatedPath[3];
-        if (!service.isValidId(id)) {
+        if (!RequestUtils.isValidId(id)) {
             xch.sendResponseHeaders(422, 0);
             xch.close();
             return;
         }
-        if (!service.isValidUrl(url)) {
+        if (!RequestUtils.isValidUrl(url)) {
             xch.sendResponseHeaders(422, 0);
             xch.close();
             return;
@@ -116,7 +116,7 @@ public class LinksHandler implements HttpHandler {
             return;
         }
         String id = separatedPath[3];
-        if (!service.isValidId(id)) {
+        if (!RequestUtils.isValidId(id)) {
             xch.sendResponseHeaders(422, 0);
             xch.close();
             return;

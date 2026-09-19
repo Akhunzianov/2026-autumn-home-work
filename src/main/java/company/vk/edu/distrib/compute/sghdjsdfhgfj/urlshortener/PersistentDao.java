@@ -1,47 +1,42 @@
 package company.vk.edu.distrib.compute.sghdjsdfhgfj.urlshortener;
 
 import company.vk.edu.distrib.compute.Dao;
-import org.jspecify.annotations.NonNull;
 
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-public class PersistentDao<T> implements Dao<T> {
-    private final Map<String, T> data;
+public class PersistentDao implements Dao<String> {
+    private final Map<String, String> data;
     private final String filename;
 
-    PersistentDao(String filename) {
+    PersistentDao(String filename) throws IOException {
         this.filename = filename;
         data = new HashMap<>();
+        read();
     }
 
     @Override
-    @NonNull
-    public T get(@NonNull String key) throws NoSuchElementException, IllegalArgumentException, IOException {
+    public String get(String key) throws NoSuchElementException, IllegalArgumentException, IOException {
         if (!data.containsKey(key)) {
             throw new NoSuchElementException();
         }
         return data.get(key);
     }
 
-    public boolean containsKey(@NonNull String key) {
+    public boolean containsKey(String key) {
         return data.containsKey(key);
     }
 
     @Override
-    public void upsert(@NonNull String key, @NonNull T value) throws IllegalArgumentException, IOException {
+    public void upsert(String key, String value) throws IllegalArgumentException, IOException {
         data.put(key, value);
         flush();
     }
 
     @Override
-    public void delete(@NonNull String key) throws IllegalArgumentException, IOException {
+    public void delete(String key) throws IllegalArgumentException, IOException {
         data.remove(key);
         flush();
     }
@@ -51,10 +46,22 @@ public class PersistentDao<T> implements Dao<T> {
         flush();
     }
 
+    private void read() throws IOException {
+        try (RandomAccessFile file = new RandomAccessFile(filename, "rw")) {
+            int size = file.readInt();
+            for (int i = 0; i < size; i++) {
+                data.put(file.readUTF(), file.readUTF());
+            }
+        }
+    }
+
     private void flush() throws IOException {
-        try (OutputStream os = Files.newOutputStream(Paths.get(filename))) {
-            ObjectOutputStream outputStream = new ObjectOutputStream(os);
-            outputStream.writeObject(data);
+        try (RandomAccessFile file = new RandomAccessFile(filename, "rw")) {
+            file.writeInt(data.size());
+            for (Map.Entry<String, String> entry : data.entrySet()) {
+                file.writeUTF(entry.getKey());
+                file.writeUTF(entry.getValue());
+            }
         }
     }
 }
