@@ -29,7 +29,7 @@ public class CustomHttpHandlerTranslator implements HttpHandler {
             }
         } catch (StatusCodeException e) {
             httpExchange.sendResponseHeaders(e.getStatusCode(), 0);
-        } catch (Throwable e) {
+        } catch (Exception e) {
             if (LOG.isErrorEnabled()) {
                 LOG.error(e.getMessage(), e);
             }

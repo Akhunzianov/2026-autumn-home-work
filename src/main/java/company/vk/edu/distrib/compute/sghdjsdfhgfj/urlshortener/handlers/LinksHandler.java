@@ -9,6 +9,7 @@ import java.io.IOException;
 
 public class LinksHandler implements CustomHttpHandler {
     private final MyUrlShortenerService service;
+    private static final int PATH_DEPTH = 3;
 
     public LinksHandler(MyUrlShortenerService service) {
         this.service = service;
@@ -75,10 +76,10 @@ public class LinksHandler implements CustomHttpHandler {
 
     private String getId(HttpExchange xch) throws StatusCodeException {
         String[] separatedPath = xch.getRequestURI().getPath().split("/");
-        if (separatedPath.length < 4) {
+        if (separatedPath.length <= PATH_DEPTH) {
             throw StatusCodeException.methodNotAllowed();
         }
-        String id = separatedPath[3];
+        String id = separatedPath[PATH_DEPTH];
         if (!RequestUtils.isValidId(id)) {
             throw StatusCodeException.unprocessable();
         }

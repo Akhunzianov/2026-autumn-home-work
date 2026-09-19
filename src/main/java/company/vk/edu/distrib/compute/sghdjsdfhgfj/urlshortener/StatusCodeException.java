@@ -1,6 +1,10 @@
 package company.vk.edu.distrib.compute.sghdjsdfhgfj.urlshortener;
 
-public class StatusCodeException extends Throwable {
+import java.io.Serial;
+
+public class StatusCodeException extends Exception {
+    @Serial
+    private static final long serialVersionUID = 6097182046991062671L;
     private final int statusCode;
 
     public StatusCodeException(int statusCode) {
