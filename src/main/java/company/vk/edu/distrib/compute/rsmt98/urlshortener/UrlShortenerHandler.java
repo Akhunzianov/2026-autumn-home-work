@@ -122,7 +122,6 @@ final class UrlShortenerHandler implements HttpHandler {
                 yield new Response(202);
             }
             default -> {
-                LinkStore.validateId(id);
                 yield methodNotAllowed(
                         exchange, GET_METHOD + ", " + PUT_METHOD + ", " + DELETE_METHOD);
             }
