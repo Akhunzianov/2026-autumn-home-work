@@ -24,6 +24,7 @@ jobs:
         run: ./gradlew build
 
       - name: Upload build artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-results
