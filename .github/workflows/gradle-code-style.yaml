@@ -28,7 +28,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: checkstyle-results
           path: |
-            build/checkstyle/**
-            build/pmd/test/**
+            build/reports/checkstyle/**
+            build/reports/pmd/**
