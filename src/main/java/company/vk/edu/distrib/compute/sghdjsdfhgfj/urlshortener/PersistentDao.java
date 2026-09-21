@@ -48,7 +48,12 @@ public class PersistentDao implements Dao<String> {
 
     private void read() throws IOException {
         try (RandomAccessFile file = new RandomAccessFile(filename, "rw")) {
-            int size = file.readInt();
+            int size;
+            try {
+                size = file.readInt();
+            } catch (EOFException e) {
+                return;
+            }
             for (int i = 0; i < size; i++) {
                 data.put(file.readUTF(), file.readUTF());
             }
