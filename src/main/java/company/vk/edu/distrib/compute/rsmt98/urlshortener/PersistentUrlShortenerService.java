@@ -93,7 +93,7 @@ public final class PersistentUrlShortenerService implements UrlShortenerService 
                 workers) {
             HttpServer httpServer = server;
             if (httpServer != null) {
-                httpServer.stop(0);
+                httpServer.stop(1);
             }
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot close URL shortener storage", e);
