@@ -4,7 +4,9 @@ import java.io.IOException;
 
 import company.vk.edu.distrib.compute.AbstractHttpServiceFactory;
 import company.vk.edu.distrib.compute.urlshortener.UrlShortenerService;
+import company.vk.edu.distrib.compute.urlshortener.UrlShortenerAuthTest;
 
+@UrlShortenerAuthTest
 public class AuthenticatedUrlShortenerServiceFactory extends AbstractHttpServiceFactory<UrlShortenerService> {
 
     @Override

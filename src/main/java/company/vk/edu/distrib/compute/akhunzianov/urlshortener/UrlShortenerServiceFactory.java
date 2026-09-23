@@ -9,7 +9,9 @@ import company.vk.edu.distrib.compute.Dao;
 import company.vk.edu.distrib.compute.akhunzianov.InMemoryDao;
 import company.vk.edu.distrib.compute.akhunzianov.PersistentDao;
 import company.vk.edu.distrib.compute.urlshortener.UrlShortenerService;
+import company.vk.edu.distrib.compute.urlshortener.UrlShortenerTest;
 
+@UrlShortenerTest
 public class UrlShortenerServiceFactory extends AbstractHttpServiceFactory<UrlShortenerService> {
 
     static final String STORAGE_DIR = "SHORTENER_STORAGE_DIR";
