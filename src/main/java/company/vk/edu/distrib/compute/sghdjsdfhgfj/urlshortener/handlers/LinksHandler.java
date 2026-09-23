@@ -77,7 +77,7 @@ public class LinksHandler implements CustomHttpHandler {
     private String getId(HttpExchange xch) throws StatusCodeException {
         String[] separatedPath = xch.getRequestURI().getPath().split("/");
         if (separatedPath.length <= PATH_DEPTH) {
-            throw StatusCodeException.methodNotAllowed();
+            throw StatusCodeException.notFound();
         }
         String id = separatedPath[PATH_DEPTH];
         if (!RequestUtils.isValidId(id)) {

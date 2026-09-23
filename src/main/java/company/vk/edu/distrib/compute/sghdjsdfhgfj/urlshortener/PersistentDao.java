@@ -32,41 +32,43 @@ public class PersistentDao implements Dao<String> {
     @Override
     public void upsert(String key, String value) throws IllegalArgumentException, IOException {
         data.put(key, value);
-        flush();
+        append(key, value);
     }
 
     @Override
     public void delete(String key) throws IllegalArgumentException, IOException {
         data.remove(key);
-        flush();
+        append(key, "");
     }
 
     @Override
     public void close() throws IOException {
-        flush();
+        //
     }
 
     private void read() throws IOException {
         try (RandomAccessFile file = new RandomAccessFile(filename, "rw")) {
-            int size;
             try {
-                size = file.readInt();
+                while (true) {
+                    String key = file.readUTF();
+                    String value = file.readUTF();
+                    if (value.isEmpty()) {
+                        data.remove(key);
+                    } else {
+                        data.put(key, value);
+                    }
+                }
             } catch (EOFException e) {
-                return;
-            }
-            for (int i = 0; i < size; i++) {
-                data.put(file.readUTF(), file.readUTF());
+                //
             }
         }
     }
 
-    private void flush() throws IOException {
+    private void append(String key, String value) throws IOException {
         try (RandomAccessFile file = new RandomAccessFile(filename, "rw")) {
-            file.writeInt(data.size());
-            for (Map.Entry<String, String> entry : data.entrySet()) {
-                file.writeUTF(entry.getKey());
-                file.writeUTF(entry.getValue());
-            }
+            file.seek(file.length());
+            file.writeUTF(key);
+            file.writeUTF(value);
         }
     }
 }
