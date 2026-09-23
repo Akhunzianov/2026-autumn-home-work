@@ -48,8 +48,8 @@ public class PersistentDao implements Dao<String> {
 
     private void read() throws IOException {
         try (RandomAccessFile file = new RandomAccessFile(filename, "rw")) {
-            try {
-                while (true) {
+            while (true) {
+                try {
                     String key = file.readUTF();
                     String value = file.readUTF();
                     if (value.isEmpty()) {
@@ -57,9 +57,9 @@ public class PersistentDao implements Dao<String> {
                     } else {
                         data.put(key, value);
                     }
+                } catch (EOFException e) {
+                    break;
                 }
-            } catch (EOFException e) {
-                //
             }
         }
     }
