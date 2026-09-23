@@ -6,14 +6,17 @@ import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class PersistentDao implements Dao<String> {
     private final Map<String, String> data;
     private final String filename;
+    private final ReentrantLock lock;
 
     PersistentDao(String filename) throws IOException {
         this.filename = filename;
         data = new HashMap<>();
+        lock = new ReentrantLock();
         read();
     }
 
@@ -31,14 +34,24 @@ public class PersistentDao implements Dao<String> {
 
     @Override
     public void upsert(String key, String value) throws IllegalArgumentException, IOException {
-        data.put(key, value);
-        append(key, value);
+        try {
+            lock.lock();
+            data.put(key, value);
+            append(key, value);
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
     public void delete(String key) throws IllegalArgumentException, IOException {
-        data.remove(key);
-        append(key, "");
+        try {
+            lock.lock();
+            data.remove(key);
+            append(key, "");
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
