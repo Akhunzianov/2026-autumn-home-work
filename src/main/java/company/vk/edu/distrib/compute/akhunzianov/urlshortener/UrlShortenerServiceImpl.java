@@ -29,6 +29,11 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
     private static final String LINKS_PREFIX = LINKS_PATH + ROOT_PATH;
     private static final String USERS_PATH = "/internal/users";
 
+    private static final String GET = "GET";
+    private static final String POST = "POST";
+    private static final String PUT = "PUT";
+    private static final String DELETE = "DELETE";
+
     private static final String TEXT_HTML = "text/html; charset=utf-8";
     private static final Pattern GOOD_ID = Pattern.compile("[a-zA-Z0-9]{10}");
     private static final String CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -54,6 +59,8 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
 
     @Nullable
     private HttpServer server;
+
+    private boolean stopped;
 
     public UrlShortenerServiceImpl(int port, Dao<String> links, @Nullable Dao<String> users) {
         this.port = port;
@@ -88,11 +95,11 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
 
     @Override
     public void stop() {
-        if (server == null) {
+        if (server == null || stopped) {
             throw new IllegalStateException("Not started");
         }
         server.stop(0);
-        server = null;
+        stopped = true;
         try {
             links.close();
             if (users != null) {
@@ -106,7 +113,7 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
     private void onLinks(HttpExchange exchange) throws IOException {
         var path = exchange.getRequestURI().getPath();
         if (LINKS_PATH.equals(path)) {
-            if ("POST".equals(exchange.getRequestMethod())) {
+            if (POST.equals(exchange.getRequestMethod())) {
                 addLink(exchange);
             } else {
                 reply(exchange, METHOD_NOT_ALLOWED_CODE, "");
@@ -123,9 +130,9 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
             return;
         }
         switch (exchange.getRequestMethod()) {
-            case "GET" -> showLink(exchange, id);
-            case "PUT" -> changeLink(exchange, id);
-            case "DELETE" -> dropLink(exchange, id);
+            case GET -> showLink(exchange, id);
+            case PUT -> changeLink(exchange, id);
+            case DELETE -> dropLink(exchange, id);
             default -> reply(exchange, METHOD_NOT_ALLOWED_CODE, "");
         }
     }
@@ -171,7 +178,7 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
     }
 
     private void onRedirect(HttpExchange exchange) throws IOException {
-        if (!"GET".equals(exchange.getRequestMethod())) {
+        if (!GET.equals(exchange.getRequestMethod())) {
             reply(exchange, METHOD_NOT_ALLOWED_CODE, "");
             return;
         }
@@ -189,7 +196,7 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
     }
 
     private void onUsers(HttpExchange exchange) throws IOException {
-        if (!"POST".equals(exchange.getRequestMethod())) {
+        if (!POST.equals(exchange.getRequestMethod())) {
             reply(exchange, METHOD_NOT_ALLOWED_CODE, "");
             return;
         }
@@ -235,7 +242,9 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
             try {
                 handler.handle(exchange);
             } catch (RuntimeException | IOException e) {
-                log.error("Failed to handle {} {}", exchange.getRequestMethod(), exchange.getRequestURI(), e);
+                if (log.isErrorEnabled()) {
+                    log.error("Failed to handle {} {}", exchange.getRequestMethod(), exchange.getRequestURI(), e);
+                }
                 if (exchange.getResponseCode() == NO_BODY) {
                     reply(exchange, INTERNAL_ERROR_CODE, "");
                 } else {
