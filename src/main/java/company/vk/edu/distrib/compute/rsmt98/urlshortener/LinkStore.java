@@ -24,12 +24,7 @@ final class LinkStore {
 
     String get(String id) throws IOException {
         validateId(id);
-        lock.lock();
-        try {
-            return links.get(id);
-        } finally {
-            lock.unlock();
-        }
+        return links.get(id);
     }
 
     String create(String longLink) throws IOException {
