@@ -14,6 +14,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import company.vk.edu.distrib.compute.Dao;
+import company.vk.edu.distrib.compute.akhunzianov.moderation.LinkModeration;
 import company.vk.edu.distrib.compute.urlshortener.UrlShortenerService;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -60,6 +61,12 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
     @Nullable
     private HttpServer server;
 
+    @Nullable
+    private String kafkaBootstrapServers;
+
+    @Nullable
+    private LinkModeration moderation;
+
     private boolean stopped;
 
     public UrlShortenerServiceImpl(int port, Dao<String> links, @Nullable Dao<String> users) {
@@ -79,6 +86,14 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
             throw new UncheckedIOException("Cannot close the replaced storage", e);
         }
         links = dao;
+    }
+
+    @Override
+    public void setKafkaBootstrapServers(String bootstrapServers) {
+        if (server != null || stopped) {
+            throw new IllegalStateException("Kafka can only be configured before start");
+        }
+        kafkaBootstrapServers = bootstrapServers;
     }
 
     @Override
@@ -102,6 +117,13 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
         }
 
         http.setExecutor(null);
+        if (kafkaBootstrapServers != null) {
+            try {
+                moderation = new LinkModeration(kafkaBootstrapServers, this.links);
+            } catch (RuntimeException e) {
+                log.warn("Cannot initialize Kafka; starting without moderation", e);
+            }
+        }
         http.start();
         server = http;
     }
@@ -113,6 +135,9 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
         }
         server.stop(0);
         stopped = true;
+        if (moderation != null) {
+            moderation.close();
+        }
         try {
             links.close();
             if (users != null) {
@@ -158,6 +183,9 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
         }
         var id = pickId();
         links.upsert(id, longLink);
+        if (moderation != null) {
+            moderation.created(id, longLink);
+        }
         reply(exchange, CREATED_CODE, "http://localhost:" + port + ROOT_PATH + id);
     }
 

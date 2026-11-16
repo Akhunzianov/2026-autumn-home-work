@@ -23,7 +23,7 @@ public class UrlShortenerServiceFactory extends AbstractHttpServiceFactory<UrlSh
 
     @Override
     protected UrlShortenerService doCreate(int port) throws IOException {
-        return new UrlShortenerServiceImpl(port, links(), null);
+        return new UrlShortenerServiceImpl(port, links(), storage("users"));
     }
 
     static Dao<String> links() throws IOException {

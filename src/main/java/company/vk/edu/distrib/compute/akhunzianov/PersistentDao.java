@@ -27,24 +27,24 @@ public class PersistentDao implements Dao<String> {
     }
 
     @Override
-    public String get(String key) throws NoSuchElementException {
+    public synchronized String get(String key) throws NoSuchElementException {
         return mem.get(key);
     }
 
     @Override
-    public void upsert(String key, String value) throws IOException {
+    public synchronized void upsert(String key, String value) throws IOException {
         append(UPSERT, key, value);
         mem.upsert(key, value);
     }
 
     @Override
-    public void delete(String key) throws IOException {
+    public synchronized void delete(String key) throws IOException {
         append(DELETE, key, "");
         mem.delete(key);
     }
 
     @Override
-    public void close() throws IOException {
+    public synchronized void close() throws IOException {
         log.close();
         mem.close();
     }
