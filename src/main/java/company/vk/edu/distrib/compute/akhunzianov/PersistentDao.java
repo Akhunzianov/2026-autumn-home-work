@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.NoSuchElementException;
+import java.util.concurrent.locks.ReentrantLock;
 
 import company.vk.edu.distrib.compute.Dao;
 
@@ -16,6 +17,8 @@ public class PersistentDao implements Dao<String> {
     private static final String DELETE = "-";
     private static final String SEPARATOR = "\t";
     private static final int FIELDS = 3;
+
+    private final ReentrantLock lock = new ReentrantLock();
 
     private final InMemoryDao mem = new InMemoryDao();
     private final BufferedWriter log;
@@ -27,26 +30,46 @@ public class PersistentDao implements Dao<String> {
     }
 
     @Override
-    public synchronized String get(String key) throws NoSuchElementException {
-        return mem.get(key);
+    public String get(String key) throws NoSuchElementException {
+        lock.lock();
+        try {
+            return mem.get(key);
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
-    public synchronized void upsert(String key, String value) throws IOException {
-        append(UPSERT, key, value);
-        mem.upsert(key, value);
+    public void upsert(String key, String value) throws IOException {
+        lock.lock();
+        try {
+            append(UPSERT, key, value);
+            mem.upsert(key, value);
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
-    public synchronized void delete(String key) throws IOException {
-        append(DELETE, key, "");
-        mem.delete(key);
+    public void delete(String key) throws IOException {
+        lock.lock();
+        try {
+            append(DELETE, key, "");
+            mem.delete(key);
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
-    public synchronized void close() throws IOException {
-        log.close();
-        mem.close();
+    public void close() throws IOException {
+        lock.lock();
+        try {
+            log.close();
+            mem.close();
+        } finally {
+            lock.unlock();
+        }
     }
 
     private void load(Path path) throws IOException {

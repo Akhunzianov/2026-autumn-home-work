@@ -51,7 +51,9 @@ public final class LinkModeration implements AutoCloseable {
         try {
             sender.execute(() -> publish(event));
         } catch (RejectedExecutionException e) {
-            log.warn("Moderation queue is full or stopped; keeping link {}", id);
+            if (log.isWarnEnabled()) {
+                log.warn("Moderation queue is full or stopped; keeping link {}", id);
+            }
         }
     }
 
@@ -61,12 +63,14 @@ public final class LinkModeration implements AutoCloseable {
                 EventCodec.encode(event).getBytes(StandardCharsets.UTF_8));
             producer.send(record,
                 (metadata, failure) -> {
-                    if (failure != null) {
+                    if (failure != null && log.isWarnEnabled()) {
                         log.warn("Cannot publish link {} for moderation", event.id(), failure);
                     }
                 });
         } catch (RuntimeException e) {
-            log.warn("Cannot publish link {} for moderation", event.id(), e);
+            if (log.isWarnEnabled()) {
+                log.warn("Cannot publish link {} for moderation", event.id(), e);
+            }
         }
     }
 
@@ -76,11 +80,15 @@ public final class LinkModeration implements AutoCloseable {
             result = EventCodec.moderated(new String(Objects.requireNonNull(record.value(), "Missing result value"),
                 StandardCharsets.UTF_8));
         } catch (RuntimeException e) {
-            log.warn("Ignoring malformed moderation result", e);
+            if (log.isWarnEnabled()) {
+                log.warn("Ignoring malformed moderation result", e);
+            }
             return;
         }
         if (!result.id().equals(record.key())) {
-            log.warn("Ignoring moderation result with mismatched key");
+            if (log.isWarnEnabled()) {
+                log.warn("Ignoring moderation result with mismatched key");
+            }
             return;
         }
         if (Boolean.FALSE.equals(result.passed())) {
@@ -98,7 +106,7 @@ public final class LinkModeration implements AutoCloseable {
         worker.close();
         producer.close(Duration.ZERO);
         try {
-            if (!sender.awaitTermination(1, TimeUnit.SECONDS)) {
+            if (!sender.awaitTermination(1, TimeUnit.SECONDS) && log.isWarnEnabled()) {
                 log.warn("Link event sender did not stop in time");
             }
         } catch (InterruptedException e) {

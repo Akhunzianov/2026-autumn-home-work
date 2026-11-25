@@ -44,25 +44,31 @@ public final class KafkaWorker implements AutoCloseable {
     private void run() {
         try {
             while (running.get()) {
-                try {
-                    for (var record : consumer.poll(POLL_TIMEOUT)) {
-                        process(record);
-                    }
-                } catch (WakeupException e) {
-                    if (running.get()) {
-                        throw e;
-                    }
-                } catch (KafkaException e) {
-                    if (running.get()) {
-                        log.warn("Kafka consumer will retry", e);
-                        Thread.sleep(RETRY_DELAY_MS);
-                    }
-                }
+                poll();
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } finally {
             closeConsumer();
+        }
+    }
+
+    private void poll() throws InterruptedException {
+        try {
+            for (var record : consumer.poll(POLL_TIMEOUT)) {
+                process(record);
+            }
+        } catch (WakeupException e) {
+            if (running.get()) {
+                throw e;
+            }
+        } catch (KafkaException e) {
+            if (running.get()) {
+                if (log.isWarnEnabled()) {
+                    log.warn("Kafka consumer will retry", e);
+                }
+                Thread.sleep(RETRY_DELAY_MS);
+            }
         }
     }
 
@@ -88,7 +94,9 @@ public final class KafkaWorker implements AutoCloseable {
             }
             consumer.seek(partition, record.offset());
             if (running.get()) {
-                log.warn("Cannot process record {}:{}:{}", record.topic(), record.partition(), record.offset(), e);
+                if (log.isWarnEnabled()) {
+                    log.warn("Cannot process record {}:{}:{}", record.topic(), record.partition(), record.offset(), e);
+                }
                 Thread.sleep(RETRY_DELAY_MS);
             }
         }

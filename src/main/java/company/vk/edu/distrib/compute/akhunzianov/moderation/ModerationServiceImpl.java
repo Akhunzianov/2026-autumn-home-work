@@ -3,6 +3,7 @@ package company.vk.edu.distrib.compute.akhunzianov.moderation;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.concurrent.locks.ReentrantLock;
 
 import company.vk.edu.distrib.compute.moderation.ModerationService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -15,6 +16,8 @@ public final class ModerationServiceImpl implements ModerationService {
 
     private static final String GROUP = "akhunzianov-moderation-v1";
 
+    private final ReentrantLock lock = new ReentrantLock();
+
     private final String bootstrapServers;
     private final UrlModerator moderator;
     @Nullable
@@ -22,6 +25,7 @@ public final class ModerationServiceImpl implements ModerationService {
     @Nullable
     private KafkaWorker worker;
     private boolean started;
+    private boolean stopped;
 
     public ModerationServiceImpl(String bootstrapServers, UrlModerator moderator) {
         this.bootstrapServers = bootstrapServers;
@@ -29,21 +33,26 @@ public final class ModerationServiceImpl implements ModerationService {
     }
 
     @Override
-    public synchronized void start() {
-        if (started) {
-            throw new IllegalStateException("Already started");
-        }
-        started = true;
-        var sender = new KafkaProducer<String, byte[]>(KafkaSettings.producer(bootstrapServers));
+    public void start() {
+        lock.lock();
         try {
-            var receiver = new KafkaWorker(bootstrapServers, GROUP, KafkaSettings.CREATED_TOPIC,
-                record -> sender.send(moderate(record)).get());
-            producer = sender;
-            worker = receiver;
-            receiver.start();
-        } catch (RuntimeException e) {
-            sender.close(Duration.ZERO);
-            throw e;
+            if (started) {
+                throw new IllegalStateException("Already started");
+            }
+            started = true;
+            var sender = new KafkaProducer<String, byte[]>(KafkaSettings.producer(bootstrapServers));
+            try {
+                var receiver = new KafkaWorker(bootstrapServers, GROUP, KafkaSettings.CREATED_TOPIC,
+                    record -> sender.send(moderate(record)).get());
+                producer = sender;
+                worker = receiver;
+                receiver.start();
+            } catch (RuntimeException e) {
+                sender.close(Duration.ZERO);
+                throw e;
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -69,13 +78,17 @@ public final class ModerationServiceImpl implements ModerationService {
     }
 
     @Override
-    public synchronized void stop() {
-        if (worker == null || producer == null) {
-            throw new IllegalStateException("Not running");
+    public void stop() {
+        lock.lock();
+        try {
+            if (stopped || worker == null || producer == null) {
+                throw new IllegalStateException("Not running");
+            }
+            worker.close();
+            producer.close(Duration.ZERO);
+            stopped = true;
+        } finally {
+            lock.unlock();
         }
-        worker.close();
-        producer.close(Duration.ZERO);
-        worker = null;
-        producer = null;
     }
 }

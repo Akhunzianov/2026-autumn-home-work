@@ -24,9 +24,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ModerationTest {
 
+    private static final String LINK_ID = "abc123";
+    private static final String UNREACHABLE_KAFKA = "localhost:1";
+
     @Test
     void eventsPreserveTextAndTimestamps() {
-        var created = new LinkCreatedEvent("abc123", "https://example.com/путь?q=a+b&other=%09", Instant.now());
+        var created = new LinkCreatedEvent(LINK_ID, "https://example.com/путь?q=a+b&other=%09", Instant.now());
         var result = new ModerationResultEvent(created.id(), false, "reason\twith\nseparators", Instant.now());
         assertEquals(created, EventCodec.created(EventCodec.encode(created)));
         assertEquals(result, EventCodec.moderated(EventCodec.encode(result)));
@@ -49,16 +52,16 @@ class ModerationTest {
     @ValueSource(strings = {"https://example.com/offense", "https://example.com/CRUELTY",
         "https://example.com/%6Fbscene?q=1", "https://example.com/?q=ObScEnE"})
     void rejectsBannedWordsIncludingEncodedAndMixedCase(String url) throws IOException {
-        var result = new UrlModerator().check(new LinkCreatedEvent("abc123", url, Instant.now()));
+        var result = new UrlModerator().check(new LinkCreatedEvent(LINK_ID, url, Instant.now()));
         assertFalse(result.passed());
-        assertEquals("abc123", result.id());
+        assertEquals(LINK_ID, result.id());
         assertFalse(result.reason().isBlank());
     }
 
     @Test
     void acceptsCleanUrl() throws IOException {
         var result = new UrlModerator().check(
-            new LinkCreatedEvent("abc123", "https://example.com/hello?q=world", Instant.now()));
+            new LinkCreatedEvent(LINK_ID, "https://example.com/hello?q=world", Instant.now()));
         assertTrue(result.passed());
     }
 
@@ -71,11 +74,25 @@ class ModerationTest {
         var service = new UrlShortenerServiceImpl(port, new InMemoryDao(), null);
         service.start();
         try {
-            assertThrows(IllegalStateException.class, () -> service.setKafkaBootstrapServers("localhost:1"));
+            assertThrows(IllegalStateException.class, () -> service.setKafkaBootstrapServers(UNREACHABLE_KAFKA));
         } finally {
             service.stop();
         }
-        assertThrows(IllegalStateException.class, () -> service.setKafkaBootstrapServers("localhost:1"));
+        assertThrows(IllegalStateException.class, () -> service.setKafkaBootstrapServers(UNREACHABLE_KAFKA));
+    }
+
+    @Test
+    void moderationLifecycleIsSingleUse() throws IOException {
+        var service = new ModerationServiceFactory().create(UNREACHABLE_KAFKA);
+        assertThrows(IllegalStateException.class, service::stop);
+        service.start();
+        try {
+            assertThrows(IllegalStateException.class, service::start);
+        } finally {
+            service.stop();
+        }
+        assertThrows(IllegalStateException.class, service::stop);
+        assertThrows(IllegalStateException.class, service::start);
     }
 
     @Test
@@ -86,7 +103,7 @@ class ModerationTest {
                 port = socket.getLocalPort();
             }
             var service = new UrlShortenerServiceImpl(port, new InMemoryDao(), null);
-            service.setKafkaBootstrapServers("localhost:1");
+            service.setKafkaBootstrapServers(UNREACHABLE_KAFKA);
             service.start();
             try (var client = HttpClient.newHttpClient()) {
                 for (int i = 0; i < 20; i++) {

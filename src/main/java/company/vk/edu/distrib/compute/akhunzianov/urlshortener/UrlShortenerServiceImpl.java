@@ -121,7 +121,9 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
             try {
                 moderation = new LinkModeration(kafkaBootstrapServers, this.links);
             } catch (RuntimeException e) {
-                log.warn("Cannot initialize Kafka; starting without moderation", e);
+                if (log.isWarnEnabled()) {
+                    log.warn("Cannot initialize Kafka; starting without moderation", e);
+                }
             }
         }
         http.start();
